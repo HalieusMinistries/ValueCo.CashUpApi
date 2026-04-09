@@ -25,20 +25,16 @@ public class KdJournal
 
 public class KdSales
 {
-    public string Date { get; set; } = string.Empty;
-    public string Cashier { get; set; } = string.Empty;
+    public string StoreCode { get; set; } = string.Empty;
+    public string CashUpDate { get; set; } = string.Empty;
+    public string CashierFullName { get; set; } = string.Empty;
     public decimal Cash { get; set; }
-    public decimal Card { get; set; }
     public decimal EFT { get; set; }
-    public decimal Erase { get; set; }
-    public decimal GrossTotal { get; set; }
-    public decimal Returns { get; set; }
-    public decimal GiftVoucher { get; set; }
-    public decimal Coupon { get; set; }
-    public decimal Loyalty { get; set; }
-    public decimal FNBDeposit { get; set; }
-    public decimal Surrender { get; set; }
-    public decimal Floats { get; set; }
-    public decimal ChangeGiven { get; set; }
-    public decimal PettyCash { get; set; }
+    public decimal Card { get; set; }
+    public decimal Rounding { get; set; }
+    public decimal GrossSales { get; set; }
+    public decimal TotalReturns { get; set; }
+    public decimal Voucher { get; set; }
+    public decimal PickingCard { get; set; }
+    public decimal LoyaltyPoints { get; set; }
 }
