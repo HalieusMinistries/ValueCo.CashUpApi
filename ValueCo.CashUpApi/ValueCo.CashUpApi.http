@@ -1,0 +1,6 @@
+@ValueCo.CashUpApi_HostAddress = http://localhost:5182
+
+GET {{ValueCo.CashUpApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

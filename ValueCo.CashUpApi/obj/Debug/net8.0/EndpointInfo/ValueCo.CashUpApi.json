@@ -1,0 +1,285 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "ValueCo.CashUpApi",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/cashup/{storeCode}/{year}/{month}": {
+      "get": {
+        "tags": [
+          "CashUp"
+        ],
+        "parameters": [
+          {
+            "name": "storeCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/cashup/{storeCode}/{year}/{month}/{day}": {
+      "get": {
+        "tags": [
+          "CashUp"
+        ],
+        "parameters": [
+          {
+            "name": "storeCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "day",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/cashup": {
+      "post": {
+        "tags": [
+          "CashUp"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashUpSubmitDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashUpSubmitDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashUpSubmitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/stores": {
+      "get": {
+        "tags": [
+          "Stores"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CashUpSubmitDto": {
+        "type": "object",
+        "properties": {
+          "storeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "day": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fnb": {
+            "type": "number",
+            "format": "double"
+          },
+          "surrender": {
+            "type": "number",
+            "format": "double"
+          },
+          "floats": {
+            "type": "number",
+            "format": "double"
+          },
+          "changeBoxes": {
+            "type": "number",
+            "format": "double"
+          },
+          "looseChange": {
+            "type": "number",
+            "format": "double"
+          },
+          "pettyCash": {
+            "type": "number",
+            "format": "double"
+          },
+          "pettyNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashUpNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "countingBanking": {
+            "type": "string",
+            "nullable": true
+          },
+          "submitted": {
+            "type": "boolean"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cashiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CashierRowDto"
+            },
+            "nullable": true
+          },
+          "eftDetails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EFTDetailDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CashierRowDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "cash": {
+            "type": "number",
+            "format": "double"
+          },
+          "card": {
+            "type": "number",
+            "format": "double"
+          },
+          "eft": {
+            "type": "number",
+            "format": "double"
+          },
+          "erase": {
+            "type": "number",
+            "format": "double"
+          },
+          "returns": {
+            "type": "number",
+            "format": "double"
+          },
+          "gift": {
+            "type": "number",
+            "format": "double"
+          },
+          "coupon": {
+            "type": "number",
+            "format": "double"
+          },
+          "loyalty": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EFTDetailDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "nullable": true
+          },
+          "soNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}
