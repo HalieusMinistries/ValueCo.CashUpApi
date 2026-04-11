@@ -14,13 +14,15 @@ public class KdContribution
 
 public class KdJournal
 {
-    public string Date { get; set; } = string.Empty;
     public string AccountCode { get; set; } = string.Empty;
     public string AccountName { get; set; } = string.Empty;
-    public decimal PrevBalance { get; set; }
-    public decimal RevenueToday { get; set; }
-    public decimal ExpenseToday { get; set; }
-    public decimal BalanceToday { get; set; }
+    public string Date { get; set; } = string.Empty;
+    public string BillNo { get; set; } = string.Empty;
+    public string DocumentType { get; set; } = string.Empty;
+    public string Explanation { get; set; } = string.Empty;
+    public decimal ReceiptAmount { get; set; }
+    public decimal PaymentAmount { get; set; }
+    public decimal Balance { get; set; }
 }
 
 public class KdSales

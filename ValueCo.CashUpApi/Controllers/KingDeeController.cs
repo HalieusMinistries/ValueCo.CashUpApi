@@ -170,13 +170,77 @@ public async Task<IActionResult> GetContributions([FromQuery] string store, [Fro
 }
 
     [HttpGet("journal")]
-    public async Task<IActionResult> GetJournal([FromQuery] string store, [FromQuery] string dateFrom, [FromQuery] string dateTo)
-    {
-        if (string.IsNullOrEmpty(store) || string.IsNullOrEmpty(dateFrom) || string.IsNullOrEmpty(store))
-            return BadRequest("store, dateFrom and dateTo are required");
+public async Task<IActionResult> GetJournal([FromQuery] string store, [FromQuery] string dateFrom, [FromQuery] string dateTo)
+{
+    if (string.IsNullOrEmpty(store) || string.IsNullOrEmpty(dateFrom) || string.IsNullOrEmpty(dateTo))
+        return BadRequest("store, dateFrom and dateTo are required");
 
-        // TODO: Replace with real query once Robbie provides journal table names
-        var result = new List<KdJournal>();
-        return Ok(result);
-    }
+    const string sql = @"
+        WITH CombinedFinancials AS (
+            SELECT t1.FCASHACCOUNT AS fbankacntidkey, t0.FBILLNO AS fbillnokey, t1.FSeq AS fbillseqkey,
+                   t0.FDATE AS fdatekey, t0.FCREATEDATE AS fcreatedatekey,
+                   0 AS fdebitamountkey,
+                   (t1.FREALPAYAMOUNTFOR - ISNULL(t1.FHANDLINGCHARGEFOR, 0)) AS fcreditamountkey,
+                   t1.FCOMMENT AS fexplanationkey, 'AP_PAYBILL' AS fbillformid,
+                   t0.FPAYORGID AS filter_org, t1.FCASHACCOUNT AS filter_cashacct,
+                   t0.FCURRENCYID AS filter_currency
+            FROM T_AP_PAYBILL t0 WITH (NOLOCK)
+            INNER JOIN T_AP_PAYBILLENTRY t1 WITH (NOLOCK) ON t0.FID = t1.FID
+            WHERE t0.FDOCUMENTSTATUS = 'C' AND t0.FCANCELSTATUS = 'A' AND t1.FISPOST = 1
+            UNION ALL
+            SELECT t1.FCASHACCOUNT, t0.FBILLNO, t1.FSeq,
+                   t0.FDATE, t0.FCREATEDATE,
+                   (t1.FREALRECAMOUNTFOR - ISNULL(t1.FHANDLINGCHARGEFOR, 0)), 0,
+                   t1.FCOMMENT, 'AR_RECEIVEBILL',
+                   t0.FPAYORGID, t1.FCASHACCOUNT,
+                   t0.FCURRENCYID
+            FROM T_AR_RECEIVEBILL t0 WITH (NOLOCK)
+            INNER JOIN T_AR_RECEIVEBILLENTRY t1 WITH (NOLOCK) ON t0.FID = t1.FID
+            WHERE t0.FDOCUMENTSTATUS = 'C' AND t0.FCANCELSTATUS = 'A' AND t1.FISPOST = 1
+            UNION ALL
+            SELECT t1.FCASHACCOUNT, t0.FBILLNO, t1.FSEQ,
+                   t0.FDATE, t0.FCREATEDATE,
+                   0, (t1.FAMOUNT + ISNULL(t1.FHANDLINGCHARGEFOR, 0)),
+                   t1.FEXPLANATION, 'CN_CASHACCESSBILL',
+                   t0.FPAYORGID, t1.FCASHACCOUNT,
+                   t1.FCURRENCYID
+            FROM T_CN_CASHACCESSBILL t0 WITH (NOLOCK)
+            INNER JOIN T_CN_CASHACCESSBILLENTRY t1 WITH (NOLOCK) ON t0.FID = t1.FID
+            WHERE t0.FDOCUMENTSTATUS = 'C' AND t0.FCANCELSTATUS = 'A' AND t1.FISPOST = 1
+        )
+        SELECT
+            c.fbankacntidkey AS AccountCode,
+            tblOrg.FNAME AS AccountName,
+            CONVERT(VARCHAR(10), c.fdatekey, 23) AS Date,
+            c.fbillnokey AS BillNo,
+            c.fbillformid AS DocumentType,
+            c.fexplanationkey AS Explanation,
+            c.fdebitamountkey AS ReceiptAmount,
+            c.fcreditamountkey AS PaymentAmount,
+            SUM(c.fdebitamountkey - c.fcreditamountkey) OVER (
+                PARTITION BY c.fbankacntidkey
+                ORDER BY c.fdatekey ASC, c.fcreatedatekey ASC, c.fbillnokey ASC, c.fbillseqkey ASC
+                ROWS UNBOUNDED PRECEDING
+            ) AS Balance
+        FROM CombinedFinancials c
+        LEFT JOIN T_ORG_ORGANIZATIONS_L tblOrg WITH (NOLOCK)
+            ON c.filter_org = tblOrg.forgid AND tblOrg.flocaleid = '1033'
+        WHERE
+            c.filter_org = (
+                SELECT forgid FROM T_ORG_ORGANIZATIONS_L 
+                WHERE fdescription = @Store AND flocaleid = '1033'
+            )
+            AND CAST(c.fdatekey AS DATE) >= @DateFrom
+            AND CAST(c.fdatekey AS DATE) <= @DateTo
+        ORDER BY
+            c.fbankacntidkey ASC,
+            c.fdatekey ASC,
+            c.fcreatedatekey ASC,
+            c.fbillnokey ASC,
+            c.fbillseqkey ASC";
+
+    using var conn = GetKdConnection();
+    var rows = await conn.QueryAsync<KdJournal>(sql, new { Store = store, DateFrom = dateFrom, DateTo = dateTo });
+    return Ok(rows);
+}
 }
