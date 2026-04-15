@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VCL Store Cash Up</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+:root {
+  --bg:#f0f2f5;--sur:#ffffff;--sur2:#f7f8fa;--brd:#e2e6ed;
+  --acc:#1a56db;--acc2:#0e9f6e;--red:#e02424;--ylw:#ff8800;
+  --txt:#1a1f2e;--txt2:#6b7280;--txt3:#9ca3af;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow2:0 4px 12px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:13px;min-height:100vh}
+
+.topbar{background:var(--acc);padding:0 24px;height:52px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow2)}
+.logo{font-family:var(--mono);font-size:13px;font-weight:500;color:rgba(255,255,255,.9);letter-spacing:.5px}
+.store-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:3px 10px;font-family:var(--mono);font-size:11px;color:#fff;font-weight:500}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+.nav{background:var(--sur);border-bottom:1px solid var(--brd);padding:0 8px;display:flex;gap:0;box-shadow:var(--shadow)}
+.nav-btn{padding:8px 7px;font-family:var(--sans);font-size:11px;font-weight:500;color:var(--txt2);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.nav-btn:hover{color:var(--txt)}
+.nav-btn.active{color:var(--acc);border-bottom-color:var(--acc)}
+.nav-btn.done{color:var(--acc2)}
+.nav-btn.done.active{border-bottom-color:var(--acc2)}
+
+.main{max-width:1200px;margin:0 auto;padding:20px 24px}
+
+.card{background:var(--sur);border:1px solid var(--brd);border-radius:8px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.card-hd{padding:12px 16px;background:var(--sur2);border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center}
+.card-hd .title{font-weight:600;font-size:12px;color:var(--txt);text-transform:uppercase;letter-spacing:.5px}
+.card-hd .sub{font-size:11px;color:var(--txt2);font-family:var(--mono)}
+.card-bd{padding:16px}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:7px 8px;background:var(--sur2);color:var(--txt2);border:1px solid var(--brd);font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+th.r,td.r{text-align:right}
+td{padding:5px 8px;border:1px solid var(--brd);color:var(--txt)}
+tr.totals-row td{background:#eff6ff;font-weight:600;color:var(--acc)}
+tr.totals-row td.r{color:var(--acc)}
+
+input.ti{width:100%;padding:4px 6px;border:1px solid var(--brd);border-radius:3px;font-family:var(--mono);font-size:12px;color:var(--txt);background:#fff;text-align:right}
+input.ti:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px rgba(26,86,219,.1)}
+input.ti.name{text-align:left}
+input.ti.err{border-color:var(--red);background:#fff5f5}
+.calc{background:var(--sur2);color:var(--acc);font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:right;font-weight:500}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+
+.frow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd)}
+.frow:last-child{border-bottom:none}
+.flbl{font-size:12px;color:var(--txt2)}
+.fval{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--txt)}
+.fval.pos{color:var(--acc2)}
+.fval.neg{color:var(--red)}
+.fval.acc{color:var(--acc)}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;font-family:var(--mono)}
+.badge.ok{background:#f0fdf4;color:var(--acc2);border:1px solid #bbf7d0}
+.badge.pend{background:#f9fafb;color:var(--txt2);border:1px solid var(--brd)}
+.badge.err{background:#fef2f2;color:var(--red);border:1px solid #fecaca}
+.badge.info{background:#eff6ff;color:var(--acc);border:1px solid #bfdbfe}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:none;font-family:var(--sans)}
+.btn.pri{background:var(--acc);color:#fff}
+.btn.pri:hover{background:#1648c8}
+.btn.sec{background:var(--sur);color:var(--txt);border:1px solid var(--brd)}
+.btn.sec:hover{border-color:var(--acc);color:var(--acc)}
+.btn.grn{background:var(--acc2);color:#fff}
+.btn.grn:hover{background:#0b8a5e}
+.btn input{display:none}
+
+.day-tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px}
+.dt{width:36px;height:36px;border:1px solid var(--brd);border-radius:5px;font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txt2);background:var(--sur);transition:all .15s;font-weight:500}
+.dt:hover{border-color:var(--acc);color:var(--acc)}
+.dt.has{border-color:#bbf7d0;background:#f0fdf4;color:var(--acc2)}
+.dt.active{background:var(--acc);border-color:var(--acc);color:#fff}
+.dt.has.active{background:var(--acc2);border-color:var(--acc2)}
+
+.sum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--brd);border:1px solid var(--brd);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.sum-cell{background:var(--sur);padding:12px 14px}
+.sum-cell .sl{font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:500}
+.sum-cell .sv{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--txt)}
+.sum-cell .sv.pos{color:var(--acc2)}
+.sum-cell .sv.neg{color:var(--red)}
+.sum-cell .sv.acc{color:var(--acc)}
+
+.alert{padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.alert.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#065f46}
+.alert.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.alert.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+.alert.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+
+.page{display:none}
+.page.active{display:block}
+
+.sec-lbl{font-size:10px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+
+.diff-ok{color:var(--acc2);font-weight:600}
+.diff-err{color:var(--red);font-weight:600}
+
+.recon-row{display:grid;grid-template-columns:180px 130px 130px 110px;gap:0;border-bottom:1px solid var(--brd)}
+.recon-row:last-child{border-bottom:none}
+.recon-row.hd{background:var(--sur2);font-size:10px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
+.recon-row.total-row{background:#eff6ff;font-weight:700}
+.rc{padding:7px 10px;font-family:var(--mono);font-size:11px}
+.rc.r{text-align:right}
+.rc.lbl{font-family:var(--sans);font-size:12px;color:var(--txt)}
+
+.status-bar{background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-size:11px}
+.status-bar .sl{color:var(--txt2)}
+.status-bar .sr{display:flex;gap:12px}
+
+.petty-table{font-size:12px}
+.petty-table td:first-child{color:var(--txt2);font-size:11px}
+.locked-overlay{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+input.ti:disabled,textarea:disabled{background:var(--sur2);color:var(--txt2);cursor:not-allowed;opacity:.7}
+.dt.locked{border-color:#fde68a;background:#fffbeb;color:#92400e}
+.dt.submitted{border-color:#bbf7d0;background:#f0fdf4;color:var(--acc2)}
+</style>
+</head>
+<body>
+    <!-- LOGIN GATE -->
+    <div id="login-gate" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0d0f18;display:flex;align-items:center;justify-content:center;z-index:99999;">
+        <div style="background:#161929;border:1px solid #262b40;border-radius:8px;padding:40px;width:320px;text-align:center">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#4f8ef7;margin-bottom:8px">VC // CASHUP</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7880a0;margin-bottom:24px;text-transform:uppercase;letter-spacing:1px">Authorised Access Only</div>
+            <input id="lg-user" type="text" placeholder="Username" style="width:100%;padding:10px;background:#1e2235;border:1px solid #262b40;color:#dde2f0;font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:4px;margin-bottom:10px;box-sizing:border-box">
+            <input id="lg-pass" type="password" placeholder="Password" style="width:100%;padding:10px;background:#1e2235;border:1px solid #262b40;color:#dde2f0;font-family:'IBM Plex Mono',monospace;font-size:12px;border-radius:4px;margin-bottom:16px;box-sizing:border-box">
+            <div id="lg-err" style="color:#f75f5f;font-family:'IBM Plex Mono',monospace;font-size:10px;margin-bottom:10px;display:none">Invalid credentials. Access denied.</div>
+            <button onclick="doLogin()" style="width:100%;padding:10px;background:#4f8ef7;border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;border-radius:4px;cursor:pointer">LOGIN</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('lg-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+        document.getElementById('lg-user').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+        async function doLogin() {
+            const u = document.getElementById('lg-user').value.trim();
+            const p = document.getElementById('lg-pass').value.trim();
+            try {
+                const res = await fetch('https://valueco-cashupapi.azurewebsites.net/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                if (res.ok) {
+                    document.getElementById('login-gate').style.display = 'none';
+                    sessionStorage.setItem('vc_auth', '1');
+                } else {
+                    document.getElementById('lg-err').style.display = 'block';
+                    document.getElementById('lg-pass').value = '';
+                }
+            } catch (err) {
+                document.getElementById('lg-err').style.display = 'block';
+                document.getElementById('lg-pass').value = '';
+            }
+        }
+        if (sessionStorage.getItem('vc_auth') === '1') {
+            document.getElementById('login-gate').style.display = 'none';
+        }
+    </script>
+
+    <div id="save-indicator" style="position:fixed;bottom:20px;right:20px;background:#065f46;color:#fff;font-family:'DM Mono',monospace;font-size:11px;padding:6px 14px;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.2);opacity:0;transition:opacity .3s;z-index:9999;pointer-events:none">✓ Saved</div>
+    <div class="topbar">
+        <div class="logo">VALUECO // STORE CASH UP</div>
+        <div class="store-badge" id="hdr-store">Loading...</div>
+        <div class="topbar-right">
+            <span style="font-size:11px;color:rgba(255,255,255,.7)" id="hdr-period"></span>
+            <label class="btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2);font-size:11px;cursor:pointer">
+                📂 Load Excel
+                <input type="file" accept=".csv" style="display:none" onchange="loadExcel(this)">
+            </label>
+            <label class="btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2);font-size:11px;cursor:pointer">
+                📊 Load Contributions
+                <input type="file" accept=".csv" style="display:none" onchange="loadContributions(this)">
+            </label>
+            <button class="btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2);font-size:11px" onclick="exportData()">📤 End of Day</button>
+            <button class="btn" style="background:rgba(255,0,0,.3);color:#fff;border:1px solid rgba(255,0,0,.4);font-size:11px" onclick="resetMonth()">🗑 Reset Month</button>
+        </div>
+    </div>
+
+    <div class="nav" id="main-nav">
+        <button class="nav-btn active" onclick="nav('home')">🏠 Home</button>
+        <!-- Day buttons injected here -->
+        <button class="nav-btn" onclick="nav('summary')" style="margin-left:auto">📊 Month Summary</button>
+    </div>
+
+    <div class="main">
+
+        <!-- HOME PAGE -->
+        <div id="page-home" class="page active">
+            <div class="alert info">ℹ Fill in cashier data each day, then export the CSV and email it to Head Office.</div>
+
+            <div class="g2">
+                <div>
+                    <div class="sec-lbl">Store Details</div>
+                    <div class="card">
+                        <div class="card-bd">
+                            <div class="frow">
+                                <span class="flbl">Store Name</span>
+                                <input class="ti name" id="cfg-name" value="VCL Blueberry" style="width:180px;text-align:left" onchange="applyConfig()">
+                            </div>
+                            <div class="frow">
+                                <span class="flbl">Store Code</span>
+                                <input class="ti" id="cfg-code" value="VCL10" style="width:100px" onchange="applyConfig()">
+                            </div>
+                            <div class="frow">
+                                <span class="flbl">Month</span>
+                                <select style="padding:4px 8px;border:1px solid var(--brd);border-radius:3px;font-size:12px" id="cfg-month" onchange="applyConfig()">
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3" selected>March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                            <div class="frow">
+                                <span class="flbl">Year</span>
+                                <input class="ti" id="cfg-year" value="2026" style="width:80px" onchange="applyConfig()">
+                            </div>
+                            <div class="frow">
+                                <span class="flbl">Store Email</span>
+                                <input class="ti name" id="cfg-email" value="" style="width:200px;text-align:left" placeholder="store@valueco.co.za" onchange="applyConfig()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="sec-lbl">Quick Select Store</div>
+                    <div class="card">
+                        <div class="card-bd" style="padding:10px">
+                            <input id="store-search" class="ti name" style="width:100%;margin-bottom:8px" placeholder="🔍 Search store name or code..." oninput="filterStores(this.value)">
+                            <select id="store-select" size="6" style="width:100%;border:1px solid var(--brd);border-radius:4px;font-size:12px;font-family:var(--mono);padding:4px" onchange="quickStore(this.value)">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sec-lbl">Month Progress</div>
+            <div class="day-tabs" id="home-day-tabs"></div>
+
+            <div class="sec-lbl">Month Totals at a Glance</div>
+            <div class="sum-grid" id="home-stats">
+                <div class="sum-cell"><div class="sl">Days with data</div><div class="sv acc" id="stat-days">0</div></div>
+                <div class="sum-cell"><div class="sl">Total Cash</div><div class="sv" id="stat-cash">R0,00</div></div>
+                <div class="sum-cell"><div class="sl">Total Cards</div><div class="sv" id="stat-cards">R0,00</div></div>
+                <div class="sum-cell"><div class="sl">Total EFT</div><div class="sv" id="stat-eft">R0,00</div></div>
+            </div>
+        </div>
+
+        <!-- DAY PAGES injected dynamically -->
+        <div id="page-day" class="page"></div>
+
+        <!-- SUMMARY PAGE -->
+        <div id="page-summary" class="page">
+            <div id="summary-content"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // =====================================================
+        // STORE LIST
+        // =====================================================
+        const STORES = [
+            { code: 'VCL01', name: 'VCL Randburg', floats: 5050, change: 9800 },
+            { code: 'VCL02', name: 'VCL Centurion', floats: 5050, change: 5150.90 },
+            { code: 'VCL03', name: 'VCL Alberton', floats: 5050, change: 4550 },
+            { code: 'VCL04', name: 'VCL Vaal', floats: 3030, change: 5000 },
+            { code: 'VCL05', name: 'VCL Boksburg', floats: 3030, change: 2000 },
+            { code: 'VCL06', name: 'VCL Atterbury', floats: 3030, change: 10450 },
+            { code: 'VCL07', name: 'VCL Secunda', floats: 3030, change: 8450 },
+            { code: 'VCL08', name: 'VCL North Rand Square', floats: 2020, change: 2810 },
+            { code: 'VCL09', name: 'VCL Somerset West', floats: 3030, change: 5300 },
+            { code: 'VCL10', name: 'VCL Blueberry', floats: 3030, change: 5300 },
+            { code: 'VCL12', name: 'VCL The Reef', floats: 3030, change: 3000 },
+            { code: 'VCL15', name: 'VCL Ryneveld', floats: 3030, change: 8450 },
+            { code: 'VCL16', name: 'VCL Horizon View', floats: 2020, change: 5300 },
+            { code: 'VCL17', name: 'VCL Randfontein', floats: 3030, change: 8450 },
+            { code: 'VCL18', name: 'VCL Harvest Place', floats: 3030, change: 8500 },
+            { code: 'VCL19', name: 'VCL Bethlehem', floats: 3030, change: 5300 },
+            { code: 'VCL20', name: 'VCL Lambton Gardens', floats: 4040, change: 2400 },
+            { code: 'VCL21', name: 'VCL Comaro Crossing', floats: 3030, change: 4900 },
+            { code: 'VCL22', name: 'VCL Rand Steam', floats: 3030, change: 5300 },
+            { code: 'VCL23', name: 'VCL Waterfall Ridge', floats: 5050, change: 4000 },
+            { code: 'VCL24', name: 'VCL Wavecrest - Test', floats: 2020, change: 5300 },
+        ];
+
+        function buildStoreSelect(filter = '') {
+            const sel = document.getElementById('store-select');
+            if (!sel) return;
+            const filtered = STORES.filter(s =>
+                s.name.toLowerCase().includes(filter.toLowerCase()) ||
+                s.code.toLowerCase().includes(filter.toLowerCase())
+            );
+            sel.innerHTML = filtered.map(s => `<option value="${s.code}|${s.name}">${s.code} — ${s.name}</option>`).join('');
+        }
+
+        function filterStores(val) {
+            buildStoreSelect(val);
+        }
+
+        function quickStore(val) {
+            if (!val) return;
+            const parts = val.split('|');
+            document.getElementById('cfg-code').value = parts[0];
+            document.getElementById('cfg-name').value = parts[1];
+            applyConfig();
+            // Auto-populate floats for all days
+            const st = STORES.find(s => s.code === parts[0]);
+            if (st) {
+                for (let d = 1; d <= daysInMonth(); d++) {
+                    const day = getDayData(d);
+                    day.floats = st.floats;
+                    day.change = st.change;
+                }
+                saveToStorage();
+            }
+        }
+
+        // =====================================================
+        // STATE
+        // =====================================================
+        const S = {
+            name: 'VCL Blueberry', code: 'VCL10', month: 3, year: 2026,
+            email: '',
+            // days: {day: {cashiers:[...], fnb, surrender, floats, change, petty, eftDetails:[...], submitted:false}}
+            days: {},
+        };
+
+        const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const MONTHS_S = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        // =====================================================
+        // HELPERS
+        // =====================================================
+        function N(v) { const n = parseFloat(String(v || 0).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n }
+        function R(n) { const v = N(n); return 'R' + Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ').replace('.', ',') }
+        function daysInMonth() { return new Date(S.year, S.month, 0).getDate() }
+        function getDayData(day) {
+            if (!S.days[day]) S.days[day] = { cashiers: [{ name: '', cash: 0, card: 0, eft: 0, erase: 0, returns: 0, gift: 0, coupon: 0, loyalty: 0 }], fnb: 0, surrender: 0, floats: 0, change: 0, petty: 0, eftDetails: [{ date: '', soNr: '', amount: 0 }], cashupDetails: '', countingBanking: '' };
+            return S.days[day];
+        }
+        function dayHasData(day) { const d = S.days[day]; if (!d) return false; return d.cashiers.some(c => c.name || c.cash || c.card || c.eft) }
+
+        // Cashier totals for a day
+        function calcDay(day) {
+            const d = getDayData(day);
+            let tC = 0, tD = 0, tE = 0, tErase = 0, tG = 0, tRt = 0, tGift = 0, tCoupon = 0, tLoyalty = 0;
+            d.cashiers.forEach(c => {
+                tC += N(c.cash); tD += N(c.card); tE += N(c.eft); tErase += N(c.erase);
+                tRt += N(c.returns); tGift += N(c.gift); tCoupon += N(c.coupon); tLoyalty += N(c.loyalty);
+            });
+            // G22 = C+D+E-F per cashier, total
+            d.cashiers.forEach(c => { tG += N(c.cash) + N(c.card) + N(c.eft) - N(c.erase) });
+            const eftTotal = d.eftDetails.reduce((a, r) => a + N(r.amount), 0);
+            const pettyTotal = eftTotal; // G58 = SUM(G51:G57) but we use petty cash rows
+            return {
+                tC, tD, tE, tErase, tG, tRt, tGift, tCoupon, tLoyalty,
+                fnb: N(d.fnb), surrender: N(d.surrender), floats: N(d.floats), change: N(d.change),
+                petty: N(d.petty), eftTotal,
+                // K4=fnb, K5=surrender, K6=floats, K7=change, K8=petty, K9=E47, K10=I47, K11=J47, K12=K47, K13=L47, K14=D47
+                k15: N(d.fnb) + N(d.surrender) + N(d.floats) + N(d.change) + N(d.petty) + tE + tRt + tGift + tCoupon + tLoyalty + tD,
+                // Physical cash check (corrected)
+                // Cash Sales (K4) only on first line
+                // Till Floats + Change Boxes + Loose Change (K6+K7+K8)
+                // Difference = K4 + K6 + K7 + K8 - Petty Cash - Total per Cashier
+                c50: N(d.fnb),
+                c51: N(d.floats) + N(d.change) + N(d.looseChange),
+                c52: N(d.fnb) + N(d.floats) + N(d.change) + N(d.looseChange),
+                c53: tC,
+                c54: N(d.fnb) - N(d.petty) - tC,
+            };
+        }
+
+        // =====================================================
+        // SAVE INDICATOR
+        // =====================================================
+        function flashSaved() {
+            const el = document.getElementById('save-indicator');
+            el.style.opacity = '1';
+            setTimeout(() => el.style.opacity = '0', 1200);
+        }
+
+        // =====================================================
+        // DAY LOCK HELPERS
+        // =====================================================
+        function isDaySubmitted(day) {
+            return S.days[day] && S.days[day].submitted === true;
+        }
+
+        function getTodayDay() {
+            const now = new Date();
+            // Only return today's day if it matches current month/year
+            if (now.getMonth() + 1 === S.month && now.getFullYear() === S.year) return now.getDate();
+            return null;
+        }
+
+        // =====================================================
+        // MISSED DAY CHECK
+        // =====================================================
+        function checkMissedDays() {
+            const today = getTodayDay();
+            if (!today) return;
+            const missed = [];
+            for (let d = 1; d < today; d++) {
+                if (!isDaySubmitted(d)) {
+                    // Check if there's any data at all — if no data and not submitted, it's missed
+                    const hasData = S.days[d] && S.days[d].cashiers && S.days[d].cashiers.some(c => c.name || c.cash || c.card || c.eft);
+                    if (!hasData) missed.push(d);
+                }
+            }
+            if (missed.length === 0) return;
+
+            // Flag missed days and send notification email
+            const missedLabels = missed.map(d => `${String(d).padStart(2, '0')} ${MONTHS_S[S.month - 1]} ${S.year}`).join(', ');
+            const to = 'monique.coetzee@valueco.co.za,elmarie.liebetrau@valueco.co.za';
+            const cc = 'kenny@delistationery.co.za,wesley@valueco.co.za';
+            const subject = encodeURIComponent(`MISSED CASH UP — ${S.name} (${S.code})`);
+            const body = encodeURIComponent(
+                `Good day,\n\nThis is an automated notification.\n\n${S.name} (${S.code}) has missed the following cash up submission(s):\n\n${missedLabels}\n\nNo data was submitted for the above date(s). This requires explanation from the store manager.\n\nKind regards,\nValueCo CashUp System`
+            );
+
+            // Show alert on screen
+            const existing = document.getElementById('missed-alert');
+            if (existing) existing.remove();
+            const alertDiv = document.createElement('div');
+            alertDiv.id = 'missed-alert';
+            alertDiv.className = 'alert err';
+            alertDiv.style.margin = '0 24px 16px 24px';
+            alertDiv.innerHTML = `⚠ <strong>Missed submission(s) detected:</strong> ${missedLabels}. An email notification has been prepared for management. <a href="mailto:${to}?cc=${encodeURIComponent(cc)}&subject=${subject}&body=${body}" style="color:inherit;font-weight:700;margin-left:8px">Send Notification Now →</a>`;
+            document.querySelector('.main').prepend(alertDiv);
+        }
+
+        // =====================================================
+        // CONFIG
+        // =====================================================
+        function applyConfig() {
+            S.name = document.getElementById('cfg-name').value;
+            S.code = document.getElementById('cfg-code').value;
+            S.month = parseInt(document.getElementById('cfg-month').value);
+            S.year = parseInt(document.getElementById('cfg-year').value);
+            S.email = document.getElementById('cfg-email').value;
+            document.getElementById('hdr-store').textContent = S.code + ' // ' + S.name;
+            document.getElementById('hdr-period').textContent = MONTHS[S.month - 1] + ' ' + S.year;
+            S.days = {};
+            const saved = localStorage.getItem('vc_days_' + S.code + '_' + S.year + '_' + S.month);
+            if (saved) S.days = JSON.parse(saved);
+            buildNavDays();
+            buildHomeDayTabs();
+            updateHomeStats();
+            checkMissedDays();
+            localStorage.setItem('vc_config', JSON.stringify({ name: S.name, code: S.code, month: S.month, year: S.year, email: S.email }));
+            // Auto-populate floats from store config
+            const st = STORES.find(s => s.code === S.code);
+            if (st) {
+                for (let d = 1; d <= daysInMonth(); d++) {
+                    const day = getDayData(d);
+                    if (!day.floats) day.floats = st.floats;
+                    if (!day.change) day.change = st.change;
+                }
+            }
+        }
+
+        // =====================================================
+        // NAV
+        // =====================================================
+        function buildNavDays() {
+            const nav = document.getElementById('main-nav');
+            // Remove old day buttons
+            nav.querySelectorAll('.day-nav-btn').forEach(b => b.remove());
+            const n = daysInMonth();
+            const ref = nav.querySelector('.nav-btn:last-child');
+            for (let d = 1; d <= n; d++) {
+                const btn = document.createElement('button');
+                btn.className = 'nav-btn day-nav-btn' + (dayHasData(d) ? ' done' : '');
+                btn.textContent = String(d).padStart(2, '0');
+                btn.onclick = (() => { const dd = d; return () => navDay(dd) })();
+                nav.insertBefore(btn, ref);
+            }
+        }
+
+        function nav(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            if (page === 'summary') renderSummary();
+            document.querySelector(`.nav-btn[onclick="nav('${page}')"]`)?.classList.add('active');
+        }
+
+        function navDay(day) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('page-day').classList.add('active');
+            renderDayPage(day);
+            // Highlight correct day nav btn
+            document.querySelectorAll('.day-nav-btn').forEach((b, i) => { if (i + 1 === day) b.classList.add('active') });
+        }
+
+        // =====================================================
+        // HOME PAGE
+        // =====================================================
+        function buildHomeDayTabs() {
+            const n = daysInMonth();
+            const today = getTodayDay();
+            document.getElementById('home-day-tabs').innerHTML = Array.from({ length: n }, (_, i) => {
+                const d = i + 1;
+                let cls = '';
+                if (isDaySubmitted(d)) cls = 'submitted';
+                else if (today && d < today && !dayHasData(d)) cls = 'locked';
+                else if (dayHasData(d)) cls = 'has';
+                return `<div class="dt ${cls}" onclick="navDay(${d})" title="${isDaySubmitted(d) ? 'Submitted' : cls === 'locked' ? 'Missed — not submitted' : ''}">${String(d).padStart(2, '0')}</div>`;
+            }).join('');
+        }
+
+        function updateHomeStats() {
+            let days = 0, tC = 0, tD = 0, tE = 0;
+            for (let d = 1; d <= daysInMonth(); d++) {
+                if (dayHasData(d)) { days++; const c = calcDay(d); tC += c.tC; tD += c.tD; tE += c.tE; }
+            }
+            document.getElementById('stat-days').textContent = days;
+            document.getElementById('stat-cash').textContent = R(tC);
+            document.getElementById('stat-cards').textContent = R(tD);
+            document.getElementById('stat-eft').textContent = R(tE);
+        }
+
+        // =====================================================
+        // DAY PAGE
+        // =====================================================
+        let currentDay = null;
+
+        function renderDayPage(day) {
+            currentDay = day;
+            const d = getDayData(day);
+            const c = calcDay(day);
+            const dateLabel = `${String(day).padStart(2, '0')} ${MONTHS_S[S.month - 1]} ${S.year}`;
+
+            // Ensure at least 10 cashier rows (rows 22-46 = 25 rows, store fills as needed)
+            while (d.cashiers.length < 10) d.cashiers.push({ name: '', cash: 0, card: 0, eft: 0, erase: 0, returns: 0, gift: 0, coupon: 0, loyalty: 0 });
+
+            // Cashier rows
+            let cashierRows = d.cashiers.map((cx, i) => `
+          <tr>
+            <td><input class="ti name" value="${cx.name || ''}" onchange="saveCashier(${day},${i},'name',this.value)" placeholder="Cashier name"></td>
+            <td><input class="ti" value="${cx.cash || ''}" onchange="saveCashier(${day},${i},'cash',this.value)" placeholder="0.00"></td>
+            <td><input class="ti" value="${cx.card || ''}" onchange="saveCashier(${day},${i},'card',this.value)" placeholder="0.00"></td>
+            <td><input class="ti" value="${cx.eft || ''}" onchange="saveCashier(${day},${i},'eft',this.value)" placeholder="0.00"></td>
+            <td><input class="ti" value="${cx.erase || ''}" onchange="saveCashier(${day},${i},'erase',this.value)" placeholder="0.00"></td>
+            <td class="calc">${R(N(cx.cash) + N(cx.card) + N(cx.eft) - N(cx.erase))}</td>
+            <td><input class="ti" value="${cx.returns || ''}" onchange="saveCashier(${day},${i},'returns',this.value)" placeholder="0.00"></td>
+            <td><input class="ti" value="${cx.gift || ''}" onchange="saveCashier(${day},${i},'gift',this.value)" placeholder="0.00"></td>
+            <td><input class="ti" value="${cx.coupon || ''}" onchange="saveCashier(${day},${i},'coupon',this.value)" placeholder="0.00"></td>
+            <td><input class="ti" value="${cx.loyalty || ''}" onchange="saveCashier(${day},${i},'loyalty',this.value)" placeholder="0.00"></td>
+          </tr>`).join('');
+
+            // EFT detail rows
+            while (d.eftDetails.length < 3) d.eftDetails.push({ date: '', soNr: '', amount: 0 });
+            let eftRows = d.eftDetails.map((e, i) => `
+          <tr>
+            <td><input class="ti name" value="${e.date || ''}" onchange="saveEFT(${day},${i},'date',this.value)" placeholder="Date"></td>
+            <td colspan="2"><input class="ti name" value="${e.soNr || ''}" onchange="saveEFT(${day},${i},'soNr',this.value)" placeholder="Sales order number"></td>
+            <td><input class="ti" value="${e.amount || ''}" onchange="saveEFT(${day},${i},'amount',this.value)" placeholder="0.00"></td>
+          </tr>`).join('');
+
+            // Cash office totals section
+            document.getElementById('page-day').innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div>
+              <div style="font-size:16px;font-weight:700">${dateLabel}</div>
+              <div style="font-size:11px;color:var(--txt2);margin-top:2px">${S.name} &bull; ${S.code}</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              ${isDaySubmitted(day)
+                    ? `<span class="badge ok">🔒 Submitted ${S.days[day].submittedAt ? new Date(S.days[day].submittedAt).toLocaleTimeString('en-ZA') : ''}</span>`
+                    : `<span class="badge ${dayHasData(day) ? 'ok' : 'pend'}">${dayHasData(day) ? '✓ Data entered' : '◦ Empty'}</span>
+                 <button class="btn sec" onclick="addCashierRow(${day})">+ Add Cashier Row</button>`
+                }
+            </div>
+          </div>
+
+          <div class="sum-grid">
+            <div class="sum-cell"><div class="sl">Total Cash (C47)</div><div class="sv acc">${R(c.tC)}</div></div>
+            <div class="sum-cell"><div class="sl">Speed Points (D47)</div><div class="sv acc">${R(c.tD)}</div></div>
+            <div class="sum-cell"><div class="sl">EFT (E47)</div><div class="sv">${R(c.tE)}</div></div>
+            <div class="sum-cell"><div class="sl">Store Total (K15)</div><div class="sv">${R(c.k15)}</div></div>
+          </div>
+
+          ${isDaySubmitted(day) ? `<div class="locked-overlay">🔒 This day has been submitted and is locked. Contact Monique or Elmarie at Head Office if a correction is required.</div>` : ''}
+          <div class="sec-lbl">Totals per Cashier &nbsp;<span style="color:var(--txt3);font-weight:400;text-transform:none">To be completed at store level</span></div>
+          <div class="card" style="padding:0;overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th style="min-width:140px">Cashiers Name</th>
+                  <th class="r" style="min-width:90px">Cash</th>
+                  <th class="r" style="min-width:90px">Speed Points (Cards)</th>
+                  <th class="r" style="min-width:80px">EFT</th>
+                  <th class="r" style="min-width:80px">Erase</th>
+                  <th class="r" style="min-width:90px">Total</th>
+                  <th class="r" style="min-width:90px">Return Vouchers</th>
+                  <th class="r" style="min-width:80px">Gift Vouchers</th>
+                  <th class="r" style="min-width:80px">Coupon Vouchers</th>
+                  <th class="r" style="min-width:80px">Payment by Points</th>
+                </tr>
+              </thead>
+              <tbody id="cashier-body-${day}">${cashierRows}</tbody>
+              <tfoot>
+                <tr class="totals-row">
+                  <td><b>Totals (Row 47)</b></td>
+                  <td class="r">${R(c.tC)}</td>
+                  <td class="r">${R(c.tD)}</td>
+                  <td class="r">${R(c.tE)}</td>
+                  <td class="r">${R(c.tErase)}</td>
+                  <td class="r">${R(c.tG)}</td>
+                  <td class="r">${R(c.tRt)}</td>
+                  <td class="r">${R(c.tGift)}</td>
+                  <td class="r">${R(c.tCoupon)}</td>
+                  <td class="r">${R(c.tLoyalty)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- RECEIPT SUMMARY (K column) -->
+          <div class="g2">
+            <div>
+              <div class="sec-lbl">Receipt Cash Up Summary (K column)</div>
+              <div class="card"><div class="card-bd">
+                <div class="frow"><span class="flbl">K4 — Total Cash Sales</span>
+                  <input class="ti" style="width:120px" value="${d.fnb || ''}" placeholder="0.00" onchange="saveField(${day},'fnb',this.value)"></div>
+                <div class="frow"><span class="flbl">K5 — Total Surrendered Cash</span>
+                  <input class="ti" style="width:120px" value="${d.surrender || ''}" placeholder="0.00" onchange="saveField(${day},'surrender',this.value)"></div>
+                <div class="frow"><span class="flbl">K6 — Till Floats</span>
+                  <span class="fval acc">${R(d.floats)}</span></div>
+                <div class="frow"><span class="flbl">K7 — Change Boxes</span>
+                  <span class="fval acc">${R(d.change)}</span></div>
+                <div class="frow"><span class="flbl">K8 — Loose Change</span>
+                  <input class="ti" style="width:120px" value="${d.looseChange || ''}" placeholder="0.00" onchange="saveField(${day},'looseChange',this.value)"></div>
+                <div class="frow"><span class="flbl">K9 — Petty Cash Total</span>
+                  <span class="fval acc">${R(c.petty)}</span></div>
+                <div class="frow"><span class="flbl">K10 — EFT</span>
+                  <span class="fval">${R(c.tE)}</span></div>
+                <div class="frow"><span class="flbl">K11 — Return Vouchers</span>
+                  <span class="fval">${R(c.tRt)}</span></div>
+                <div class="frow"><span class="flbl">K12 — Gift Vouchers</span>
+                  <span class="fval">${R(c.tGift)}</span></div>
+                <div class="frow"><span class="flbl">K13 — Coupon Vouchers</span>
+                  <span class="fval">${R(c.tCoupon)}</span></div>
+                <div class="frow"><span class="flbl">K14 — Loyalty Points</span>
+                  <span class="fval">${R(c.tLoyalty)}</span></div>
+                <div class="frow"><span class="flbl">K15 — Speed Points (Cards)</span>
+                  <span class="fval">${R(c.tD)}</span></div>
+                <div class="frow" style="border-top:2px solid var(--brd);margin-top:4px;padding-top:8px">
+                  <span class="flbl" style="font-weight:700;color:var(--txt)">K16 — Store Total</span>
+                  <span class="fval acc" style="font-size:15px">${R(c.k15)}</span></div>
+              </div></div>
+            </div>
+
+            <div>
+              <div class="sec-lbl">Physical Cash Check</div>
+              <div class="card"><div class="card-bd">
+                <div class="frow"><span class="flbl">Cash Sales (K4)</span>
+                  <span class="fval">${R(c.fnb)}</span></div>
+                <div class="frow"><span class="flbl">Till Floats + Change Boxes + Loose Change (K6+K7+K8)</span>
+                  <span class="fval">${R(c.c51)}</span></div>
+                <div class="frow"><span class="flbl">Total Cash per Summary</span>
+                  <span class="fval">${R(c.c52)}</span></div>
+                <div class="frow"><span class="flbl">Less: Petty Cash (K9)</span>
+                  <span class="fval neg">- ${R(N(d.petty))}</span></div>
+                <div class="frow"><span class="flbl">Total Cash per Cashier (C47)</span>
+                  <span class="fval">${R(c.tC)}</span></div>
+                <div class="frow" style="border-top:2px solid var(--brd);margin-top:4px;padding-top:8px">
+                  <span class="flbl" style="font-weight:700;color:var(--txt)">Difference</span>
+                  <span class="${Math.abs(c.c54) < 5 ? 'diff-ok' : 'diff-err'}" style="font-family:var(--mono);font-size:13px">${R(c.c54)} ${Math.abs(c.c54) < 5 ? '✓' : c.c54 > 0 ? '⬆' : '⬇'}</span></div>
+                ${Math.abs(c.c54) >= 5 ? `<div class="alert err" style="margin-top:8px;font-size:11px">⚠ Difference exceeds R5 — needs explanation</div>` : ''}
+              </div></div>
+
+              <div class="sec-lbl">Petty Cash Reconciliation</div>
+              <div class="card">
+                <div class="card-bd">
+                  <div class="frow"><span class="flbl">Petty Cash Total</span>
+                    <input class="ti" style="width:120px" value="${d.petty || ''}" placeholder="0.00" onchange="saveField(${day},'petty',this.value)"></div>
+                  <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--brd)">
+                    <div class="flbl" style="margin-bottom:6px">Petty Cash Notes</div>
+                    <textarea style="width:100%;padding:8px;border:1px solid var(--brd);border-radius:4px;font-size:12px;font-family:var(--sans);resize:vertical;min-height:80px"
+                      onchange="savePettyNotes(${day},this.value)" placeholder="Describe petty cash usage — no character limit...">${d.pettyNotes || ''}</textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sec-lbl">EFT Details</div>
+              <div class="card" style="padding:0;overflow:hidden">
+                <table class="petty-table">
+                  <thead><tr>
+                    <th>Date of Payment</th><th colspan="2">Sales Order Nr</th><th class="r">Amount</th>
+                  </tr></thead>
+                  <tbody>${eftRows}</tbody>
+                  <tfoot><tr class="totals-row">
+                    <td colspan="3"><b>Total (K58)</b></td>
+                    <td class="r">${R(c.eftTotal)}</td>
+                  </tr></tfoot>
+                </table>
+                <div style="padding:8px 10px;border-top:1px solid var(--brd)">
+                  <button class="btn sec" style="font-size:11px;padding:5px 10px" onclick="addEFTRow(${day})">+ Add Row</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- USER DETAILS / CASH UP DETAILS -->
+          <div class="g2">
+            <div>
+              <div class="sec-lbl">Cash Up Details &amp; Notes</div>
+              <div class="card"><div class="card-bd">
+                <textarea style="width:100%;padding:8px;border:1px solid var(--brd);border-radius:4px;font-size:12px;font-family:var(--sans);resize:vertical;min-height:100px"
+                  onchange="saveCashupDetails(${day},this.value)" placeholder="Enter cash up details, comments or notes — no character limit...">${d.cashupDetails || ''}</textarea>
+              </div></div>
+            </div>
+            <div>
+              <div class="sec-lbl">Counting / Banking</div>
+              <div class="card"><div class="card-bd">
+                <div class="frow"><span class="flbl">Counting &amp; banking notes</span></div>
+                <textarea style="width:100%;margin-top:6px;padding:8px;border:1px solid var(--brd);border-radius:4px;font-size:12px;font-family:var(--sans);resize:vertical;min-height:60px"
+                  onchange="saveField(${day},'countingBanking',this.value)" placeholder="Counting and banking details...">${d.countingBanking || ''}</textarea>
+              </div></div>
+            </div>
+          </div>`;
+        }
+
+        // =====================================================
+        // DATA MUTATIONS
+        // =====================================================
+        function saveCashier(day, idx, field, val) {
+            getDayData(day).cashiers[idx][field] = field === 'name' ? val : N(val);
+            if (field === 'cash') {
+                const d = getDayData(day);
+                d.fnb = Math.round(d.cashiers.reduce((sum, c) => sum + N(c.cash), 0) * 100) / 100;
+            }
+            saveToStorage();
+            flashSaved();
+            renderDayPage(day);
+            updateNavStatus(day);
+            updateHomeStats();
+        }
+
+        function saveField(day, field, val) {
+            getDayData(day)[field] = N(val);
+            saveToStorage();
+            flashSaved();
+            renderDayPage(day);
+        }
+
+        function saveCashupDetails(day, val) {
+            getDayData(day).cashupDetails = val;
+            saveToStorage();
+            flashSaved();
+        }
+
+        function savePettyNotes(day, val) {
+            getDayData(day).pettyNotes = val;
+            saveToStorage();
+            flashSaved();
+        }
+
+        function saveEFT(day, idx, field, val) {
+            getDayData(day).eftDetails[idx][field] = field === 'amount' ? N(val) : val;
+            saveToStorage();
+            flashSaved();
+            renderDayPage(day);
+        }
+
+        function addCashierRow(day) {
+            getDayData(day).cashiers.push({ name: '', cash: 0, card: 0, eft: 0, erase: 0, returns: 0, gift: 0, coupon: 0, loyalty: 0 });
+            renderDayPage(day);
+        }
+
+        function addEFTRow(day) {
+            getDayData(day).eftDetails.push({ date: '', soNr: '', amount: 0 });
+            renderDayPage(day);
+        }
+
+        function updateNavStatus(day) {
+            const btns = document.querySelectorAll('.day-nav-btn');
+            if (btns[day - 1]) btns[day - 1].className = 'nav-btn day-nav-btn' + (dayHasData(day) ? ' done active' : ' active');
+            buildHomeDayTabs();
+        }
+
+        // =====================================================
+        // MONTH SUMMARY
+        // =====================================================
+        function renderSummary() {
+            let rows = '';
+            let gC = 0, gD = 0, gE = 0, gRt = 0, gGift = 0, gCoupon = 0, gLoyalty = 0, gK15 = 0;
+            for (let d = 1; d <= daysInMonth(); d++) {
+                if (!dayHasData(d)) continue;
+                const c = calcDay(d);
+                gC += c.tC; gD += c.tD; gE += c.tE; gRt += c.tRt; gGift += c.tGift; gCoupon += c.tCoupon; gLoyalty += c.tLoyalty; gK15 += c.k15;
+                rows += `<tr onclick="navDay(${d})" style="cursor:pointer" title="Click to open day ${d}">
+              <td style="color:var(--acc);font-weight:600">${String(d).padStart(2, '0')} ${MONTHS_S[S.month - 1]}</td>
+              <td class="r">${R(c.tC)}</td><td class="r">${R(c.tD)}</td><td class="r">${R(c.tE)}</td>
+              <td class="r">${R(c.tRt)}</td><td class="r">${R(c.tGift)}</td><td class="r">${R(c.tCoupon)}</td>
+              <td class="r">${R(c.tLoyalty)}</td><td class="r" style="color:var(--acc);font-weight:600">${R(c.k15)}</td>
+            </tr>`;
+            }
+
+            document.getElementById('summary-content').innerHTML = `
+          <div class="sum-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+            <div class="sum-cell"><div class="sl">Total Cash</div><div class="sv acc">${R(gC)}</div></div>
+            <div class="sum-cell"><div class="sl">Total Cards</div><div class="sv acc">${R(gD)}</div></div>
+            <div class="sum-cell"><div class="sl">Total EFT</div><div class="sv">${R(gE)}</div></div>
+            <div class="sum-cell"><div class="sl">Grand Store Total</div><div class="sv">${R(gK15)}</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table>
+              <thead><tr>
+                <th>Day</th><th class="r">Cash</th><th class="r">Cards</th><th class="r">EFT</th>
+                <th class="r">Returns</th><th class="r">Gift Vch</th><th class="r">Coupon Vch</th>
+                <th class="r">Loyalty Pts</th><th class="r">Store Total</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+              <tfoot><tr class="totals-row">
+                <td><b>TOTALS</b></td>
+                <td class="r">${R(gC)}</td><td class="r">${R(gD)}</td><td class="r">${R(gE)}</td>
+                <td class="r">${R(gRt)}</td><td class="r">${R(gGift)}</td><td class="r">${R(gCoupon)}</td>
+                <td class="r">${R(gLoyalty)}</td><td class="r">${R(gK15)}</td>
+              </tr></tfoot>
+            </table>
+          </div>
+          <div style="margin-top:12px;text-align:right">
+            <button class="btn grn" onclick="exportData()">📤 End of Day — Export &amp; Email to HO</button>
+          </div>`;
+        }
+
+        // =====================================================
+        // LOAD KINGDEE CONTRIBUTIONS CSV
+        // =====================================================
+        function loadExcel(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const daysWithData = [];
+            for (let d = 1; d <= daysInMonth(); d++) {
+                if (dayHasData(d)) daysWithData.push(String(d).padStart(2, '0'));
+            }
+            if (daysWithData.length > 0) {
+                const proceed = confirm(
+                    'Warning: The following days already have data:\n' +
+                    daysWithData.join(', ') +
+                    '\n\nLoading this file will overwrite existing data. Continue?'
+                );
+                if (!proceed) { input.value = ''; return; }
+            }
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                const text = e.target.result;
+                const lines = text.split(/\r?\n/);
+
+                // Extract store code from header line 1
+                const header = lines[0] || '';
+                const storeMatch = header.match(/Business Org\..*?([A-Z]{2,4}\d{2,3})/);
+                const fileStoreCode = storeMatch ? storeMatch[1] : null;
+
+                if (fileStoreCode && fileStoreCode !== S.code) {
+                    if (!confirm(`⚠ Store mismatch!\n\nYou are working on: ${S.code} — ${S.name}\nThis file is for: ${fileStoreCode}\n\nContinue anyway?`)) {
+                        input.value = ''; return;
+                    }
+                }
+
+                // Skip rows 1-2 (metadata), row 3 is header, data starts row 4
+                let imported = 0;
+                for (let i = 3; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (!line.trim()) continue;
+
+                    // Parse CSV line respecting quoted fields
+                    const cols = [];
+                    let inQ = false, cur = '';
+                    for (let c = 0; c < line.length; c++) {
+                        if (line[c] === '"') { inQ = !inQ; continue; }
+                        if (line[c] === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+                        cur += line[c];
+                    }
+                    cols.push(cur.trim());
+
+                    const dateVal = cols[0] || '';
+
+                    // Skip subtotal and grand total rows — K4 is built from cash rows directly
+                    if (dateVal.includes('Subtotal') || dateVal.includes('Grand')) continue;
+                    if (dateVal.includes('Grand') || !/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) continue;
+
+                    const dayNum = parseInt(dateVal.split('-')[2]);
+                    if (isNaN(dayNum) || dayNum < 1 || dayNum > 31) continue;
+
+                    const cashierName = (cols[5] || '').trim();
+                    const mode = (cols[6] || '').trim().toLowerCase();
+                    const amount = N((cols[10] || '').replace(/,/g, ''));
+
+                    if (!cashierName || !mode) continue;
+
+                    const day = getDayData(dayNum);
+
+                    // Clear default empty row on first real cashier for this day
+                    if (day.cashiers.length === 1 && !day.cashiers[0].name && !day.cashiers[0].cash && !day.cashiers[0].card) {
+                        day.cashiers = [];
+                    }
+
+                    // Find or create cashier row
+                    let cashier = day.cashiers.find(c => c.name === cashierName);
+                    if (!cashier) {
+                        cashier = { name: cashierName, cash: 0, card: 0, eft: 0, erase: 0, returns: 0, gift: 0, coupon: 0, loyalty: 0 };
+                        day.cashiers.push(cashier);
+                    }
+
+                    if (mode === 'cash') { cashier.cash = amount; }
+                    else if (mode === 'bank card') cashier.card = amount;
+                    else if (mode === 'erase') cashier.erase = amount;
+
+                    imported++;
+                }
+
+                // Auto-populate K4 from cashier cash totals per day
+                for (let d = 1; d <= daysInMonth(); d++) {
+                    const day = S.days[d];
+                    if (!day || !day.cashiers) continue;
+                    day.fnb = Math.round(day.cashiers.reduce((sum, c) => sum + N(c.cash), 0) * 100) / 100;
+                }
+                saveToStorage();
+                buildNavDays();
+                buildHomeDayTabs();
+                updateHomeStats();
+                alert(`KingDee CSV loaded successfully. ${imported} entries imported across ${daysInMonth()} days.`);
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // =====================================================
+        // LOAD CONTRIBUTIONS CSV (STORE PORTAL)
+        // =====================================================
+        function loadContributions(input) {
+            const file = input.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const text = e.target.result;
+                const lines = text.split(/\r?\n/);
+
+                // Extract store code from header line 1
+                const header = lines[0] || '';
+                const storeMatch = header.match(/Business Org\..*?([A-Z]{2,4}\d{2,3})/);
+                const fileStoreCode = storeMatch ? storeMatch[1] : null;
+
+                if (fileStoreCode && fileStoreCode !== S.code) {
+                    if (!confirm(`⚠ Store mismatch!\n\nYou are working on: ${S.code} — ${S.name}\nThis file is for: ${fileStoreCode}\n\nContinue anyway?`)) {
+                        input.value = ''; return;
+                    }
+                }
+
+                let imported = 0;
+                for (let i = 3; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (!line.trim()) continue;
+
+                    const cols = [];
+                    let inQ = false, cur = '';
+                    for (let c = 0; c < line.length; c++) {
+                        if (line[c] === '"') { inQ = !inQ; continue; }
+                        if (line[c] === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+                        cur += line[c];
+                    }
+                    cols.push(cur.trim());
+
+                    const dateVal = cols[0] || '';
+                    if (dateVal.includes('Subtotal') || dateVal.includes('Grand')) continue;
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) continue;
+
+                    const dayNum = parseInt(dateVal.split('-')[2]);
+                    if (isNaN(dayNum) || dayNum < 1 || dayNum > 31) continue;
+
+                    const cashierName = (cols[5] || '').trim();
+                    const mode = (cols[6] || '').trim().toLowerCase();
+                    const amount = N((cols[10] || '').replace(/,/g, ''));
+
+                    if (!cashierName || !mode) continue;
+
+                    const day = getDayData(dayNum);
+
+                    if (day.cashiers.length === 1 && !day.cashiers[0].name && !day.cashiers[0].cash && !day.cashiers[0].card) {
+                        day.cashiers = [];
+                    }
+
+                    let cashier = day.cashiers.find(c => c.name === cashierName);
+                    if (!cashier) {
+                        cashier = { name: cashierName, cash: 0, card: 0, eft: 0, erase: 0, returns: 0, gift: 0, coupon: 0, loyalty: 0 };
+                        day.cashiers.push(cashier);
+                    }
+
+                    if (mode === 'cash') { cashier.cash = amount; }
+                    else if (mode === 'bank card') cashier.card = amount;
+                    else if (mode === 'erase') cashier.erase = amount;
+
+                    imported++;
+                }
+
+                // Auto-populate K4 from cashier cash totals per day
+                for (let d = 1; d <= daysInMonth(); d++) {
+                    const day = S.days[d];
+                    if (!day || !day.cashiers) continue;
+                    day.fnb = Math.round(day.cashiers.reduce((sum, c) => sum + N(c.cash), 0) * 100) / 100;
+                }
+
+                saveToStorage();
+                buildNavDays();
+                buildHomeDayTabs();
+                updateHomeStats();
+                alert(`Contributions CSV loaded successfully. ${imported} entries imported.`);
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function exportData() {
+            const today = getTodayDay();
+            if (!today) {
+                alert('Cash up submission is only available for the current month.');
+                return;
+            }
+
+            if (!dayHasData(today)) {
+                const proceed = confirm(`No cashier data has been entered for today (${String(today).padStart(2, '0')} ${MONTHS_S[S.month - 1]}). Submit anyway?\n\nNote: This will mark today as submitted and cannot be undone at store level.`);
+                if (!proceed) return;
+            }
+
+            // Build CSV for all submitted days from day 1 through today
+            let csv = `ValueCo Store CashUp Export\n`;
+            csv += `Store,${S.name},${S.code}\n`;
+            csv += `Month,${MONTHS[S.month - 1]},${S.year}\n\n`;
+            csv += `Date,CashierName,Cash,Cards,EFT,Erase,Total,Returns,GiftVouchers,CouponVouchers,LoyaltyPoints,FNBDeposit,Surrender,Floats,Change,Petty\n`;
+            for (let d = 1; d <= today; d++) {
+                if (!dayHasData(d)) continue;
+                const dd = getDayData(d);
+                const dateStr = `${S.year}-${String(S.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                dd.cashiers.forEach(c => {
+                    if (!c.name && !c.cash && !c.card) return;
+                    csv += `${dateStr},${c.name},${N(c.cash)},${N(c.card)},${N(c.eft)},${N(c.erase)},${N(c.cash) + N(c.card) + N(c.eft) - N(c.erase)},${N(c.returns)},${N(c.gift)},${N(c.coupon)},${N(c.loyalty)},${N(dd.fnb)},${N(dd.surrender)},${N(dd.floats)},${N(dd.change)},${N(dd.petty)}\n`;
+                });
+            }
+
+            saveToStorage();
+            flashSaved();
+
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            const now = new Date();
+            const dateStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+            const timeStamp = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+            a.download = `${S.code}_${S.name.replace(/\s+/g, '_')}_${dateStamp}_${timeStamp}.csv`;
+            a.click();
+
+            // Open email
+            setTimeout(() => {
+                const to = 'monique.coetzee@valueco.co.za,elmarie.liebetrau@valueco.co.za';
+                const subject = encodeURIComponent(`${S.name} — Daily Cash Up ${String(today).padStart(2, '0')} ${MONTHS[S.month - 1]} ${S.year}`);
+                const body = encodeURIComponent(
+                    `Good day Monique and Elmarie,\n\nPlease find attached the daily cash up export for ${S.name} (${S.code}).\n\nDate: ${String(today).padStart(2, '0')} ${MONTHS[S.month - 1]} ${S.year}\nPeriod: ${MONTHS[S.month - 1]} ${S.year}\nSubmitted: ${new Date().toLocaleTimeString('en-ZA')}\n\nPlease attach the downloaded CSV file to this email before sending.\n\nKind regards,\n${S.name} Store`
+                );
+                window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+                for (let d = 1; d <= today; d++) {
+                    if (dayHasData(d)) postDayToAPI(d);
+                }
+            }, 1000);
+        }
+
+        // =====================================================
+        // LOCAL STORAGE
+        // =====================================================
+        function saveToStorage() {
+            localStorage.setItem('vc_days_' + S.code + '_' + S.year + '_' + S.month, JSON.stringify(S.days));
+        }
+
+        async function loadFromAPI(code, year, month) {
+            try {
+                const res = await fetch(`${API_BASE}/cashup/${code}/${year}/${month}`);
+                if (!res.ok) return false;
+                const days = await res.json();
+                if (!days || days.length === 0) return false;
+
+                days.forEach(d => {
+                    const dayNum = parseInt(d.cashUpDate.split('-')[2]);
+                    const day = getDayData(dayNum);
+
+                    day.fnb = 0;
+                    day.surrender = d.surrender;
+                    const st = STORES.find(s => s.code === code);
+                    day.floats = st ? st.floats : d.floats;
+                    day.change = st ? st.change : d.changeBoxes;
+                    day.looseChange = d.looseChange;
+                    day.petty = d.pettyCash;
+                    day.pettyNotes = d.pettyNotes || '';
+                    day.cashupDetails = d.cashUpNotes || '';
+                    day.countingBanking = d.countingBanking || '';
+                    day.submitted = d.submitted;
+                    day.submittedAt = d.submittedAt;
+
+                    day.cashiers = d.cashierRows.map(c => ({
+                        name: c.cashierName,
+                        cash: c.cash, card: c.card, eft: c.eft,
+                        erase: c.erase, returns: c.returns,
+                        gift: c.gift, coupon: c.coupon, loyalty: c.loyalty
+                    }));
+
+                    day.eftDetails = d.eftDetails.map(e => ({
+                        date: e.eftDate, soNr: e.soNumber, amount: e.amount
+                    }));
+                });
+
+                saveToStorage();
+                return true;
+            } catch (err) {
+                console.warn('API load failed, using localStorage:', err.message);
+                return false;
+            }
+        }
+
+        function loadFromStorage() {
+            const cfg = localStorage.getItem('vc_config');
+            if (cfg) {
+                const c = JSON.parse(cfg);
+                S.name = c.name; S.code = c.code; S.month = c.month; S.year = c.year; S.email = c.email || '';
+                document.getElementById('cfg-name').value = S.name;
+                document.getElementById('cfg-code').value = S.code;
+                document.getElementById('cfg-month').value = S.month;
+                document.getElementById('cfg-year').value = S.year;
+                document.getElementById('cfg-email').value = S.email;
+            }
+            // Always load days keyed to current store+month
+            S.days = {};
+            const days = localStorage.getItem('vc_days_' + S.code + '_' + S.year + '_' + S.month);
+            if (days) S.days = JSON.parse(days);
+        }
+
+        // =====================================================
+        // API SYNC
+        // =====================================================
+        const API_BASE = 'https://valueco-cashupapi.azurewebsites.net/api';
+
+        async function postDayToAPI(day) {
+            const d = getDayData(day);
+            const payload = {
+                storeCode: S.code,
+                year: S.year,
+                month: S.month,
+                day: day,
+                fnb: N(d.fnb),
+                surrender: N(d.surrender),
+                floats: N(d.floats),
+                changeBoxes: N(d.change),
+                looseChange: N(d.looseChange),
+                pettyCash: N(d.petty),
+                pettyNotes: d.pettyNotes || '',
+                cashUpNotes: d.cashupDetails || '',
+                countingBanking: d.countingBanking || '',
+                submitted: true,
+                submittedAt: new Date().toISOString(),
+                cashiers: d.cashiers
+                    .filter(c => c.name || c.cash || c.card || c.eft)
+                    .map(c => ({
+                        name: c.name || '',
+                        cash: N(c.cash), card: N(c.card), eft: N(c.eft),
+                        erase: N(c.erase), returns: N(c.returns),
+                        gift: N(c.gift), coupon: N(c.coupon), loyalty: N(c.loyalty)
+                    })),
+                eftDetails: d.eftDetails
+                    .filter(e => e.amount)
+                    .map(e => ({ date: e.date, soNumber: e.soNr, amount: N(e.amount) }))
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/cashup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
+                console.log('API sync successful');
+            } catch (err) {
+                console.warn('API sync failed (data safe in localStorage):', err.message);
+            }
+        }
+
+
+        async function resetMonth() {
+            const pwd = prompt('Enter admin password to reset:');
+            if (pwd !== 'Revelation@717') { alert('Incorrect password.'); return; }
+            if (!confirm(`⚠ DANGER\n\nThis will permanently delete ALL cash up data for ${S.name} (${S.code}) for ${MONTHS[S.month - 1]} ${S.year} from the server.\n\nThis cannot be undone. Are you sure?`)) return;
+            if (!confirm(`Second confirmation required.\n\nDelete ALL data for ${S.code} — ${MONTHS[S.month - 1]} ${S.year}?`)) return;
+            try {
+                const res = await fetch(`${API_BASE}/cashup/${S.code}/${S.year}/${S.month}`, {
+                    method: 'DELETE'
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const msg = await res.text();
+                S.days = {};
+                localStorage.removeItem('vc_days_' + S.code + '_' + S.year + '_' + S.month);
+                buildNavDays();
+                buildHomeDayTabs();
+                updateHomeStats();
+                nav('home');
+                alert(`✓ ${msg}\n\nAll data cleared. Load the KingDee CSV to start fresh.`);
+                window.location.reload();
+            } catch (err) {
+                alert(`Failed: ${err.message}`);
+            }
+        }
+
+        // =====================================================
+        // INIT
+        // =====================================================
+        window.addEventListener('beforeunload', () => saveToStorage());
+        loadFromStorage();
+        buildStoreSelect();
+        applyConfig();
+
+        // Pull latest data from API after local load
+        loadFromAPI(S.code, S.year, S.month).then(loaded => {
+            if (loaded) {
+                buildNavDays();
+                buildHomeDayTabs();
+                updateHomeStats();
+                console.log('Data restored from API');
+            }
+        });
+    </script>
+</body>
+</html>
