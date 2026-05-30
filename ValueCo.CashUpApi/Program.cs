@@ -28,7 +28,9 @@ app.UseSwaggerUI(c => {
     c.RoutePrefix = "swagger";
 });
 app.UseStaticFiles();
-app.UseHttpsRedirection();
+// Note: HttpsRedirection is intentionally disabled — this API runs on a local intranet
+// over plain HTTP on port 4002. Enabling HTTPS redirection would cause 307 redirects
+// that break fetch() calls from the frontend (port 4001 → 4002).
 app.UseCors("VCLStores");
 app.UseAuthorization();
 app.MapControllers();
